@@ -888,3 +888,7 @@
 	}
 
 })( window, true, false, null );
+
+if (typeof module !== 'undefined') {
+    module.exports = window.history;
+}
