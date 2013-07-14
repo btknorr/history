@@ -69,7 +69,7 @@
         </body>
     </html>
 
-А тепер показываю пример в связке с jQuery:
+А теперь показываю пример в связке с jQuery:
 
     <!DOCTYPE html>
     <html>
@@ -153,6 +153,9 @@
 
 Также вы можете комбинировать опции:
 	history.min.js?type=/&redirect=true&basepath=/pathtosite/ - порядок опций не имеет значение.
+
+Или выполнить специальный метод в JavaScript:
+    history.redirect( /* type = */ '/', /* basepath = */ '/pathtosite/' );
 
 Демо-сайт: http://history.spb-piksel.ru/
 
