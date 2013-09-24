@@ -1,5 +1,5 @@
 /*
- * History API JavaScript Library v4.0.1
+ * History API JavaScript Library v4.0.5
  *
  * Support: IE8+, FF3+, Opera 9+, Safari, Chrome and other
  *
@@ -11,15 +11,17 @@
  *   http://www.opensource.org/licenses/mit-license.php
  *   http://www.gnu.org/licenses/gpl.html
  *
- * Update: 11.06.13 01:42
+ * Update: 20.08.13 21:16
  */
 (function(window) {
+    // Prevent the code from running if there is no window.history object
+    if (!window.history) return;
     // symlink to document
     var document = window.document;
     // HTML element
     var documentElement = document.documentElement;
     // symlink to sessionStorage
-    var sessionStorage = window['sessionStorage'];
+    var sessionStorage = null;
     // symlink to constructor of Object
     var Object = window['Object'];
     // symlink to JSON Object
@@ -83,6 +85,21 @@
     };
 
     /**
+     * Fix for Chrome in iOS
+     * See https://github.com/devote/HTML5-History-API/issues/29
+     */
+    var fastFixChrome = function(method, args) {
+        var isNeedFix = window.history !== windowHistory;
+        if (isNeedFix) {
+            window.history = windowHistory;
+        }
+        method.apply(windowHistory, args);
+        if (isNeedFix) {
+            window.history = historyObject;
+        }
+    };
+
+    /**
      * Properties that will be replaced/added to object
      * 'window.history', includes the object 'history.location',
      * for a complete the work with the URL address
@@ -125,7 +142,7 @@
          * @param {string} [url]
          */
         pushState: function(state, title, url) {
-            historyPushState && historyPushState.apply(windowHistory, arguments);
+            historyPushState && fastFixChrome(historyPushState, arguments);
             changeState(state, url);
         },
         /**
@@ -140,7 +157,7 @@
          */
         replaceState: function(state, title, url) {
             delete stateStorage[windowLocation.href];
-            historyReplaceState && historyReplaceState.apply(windowHistory, arguments);
+            historyReplaceState && fastFixChrome(historyReplaceState, arguments);
             changeState(state, url, true);
         },
         /**
@@ -370,7 +387,7 @@
     /**
      * Initializing storage for the custom state's object
      */
-    function storageInitialize(JSON) {
+    function storageInitialize() {
         var storage = '';
         if (sessionStorage) {
             // get cache from the storage in browser
@@ -759,7 +776,7 @@
             var current = parseURL();
             var expect = parseURL(target.getAttribute("href", 2));
             var isEqualBaseURL = current._href.split('#').shift() === expect._href.split('#').shift();
-            if (isEqualBaseURL) {
+            if (isEqualBaseURL && expect._hash) {
                 if (current._hash !== expect._hash) {
                     historyObject.location.hash = expect._hash;
                 }
@@ -802,6 +819,15 @@
         arg.replace(/(\w+)(?:=([^&]*))?/g, function(a, key, value) {
             settings[key] = (value || (key === 'basepath' ? '/' : '')).replace(/^(0|false)$/, '');
         });
+
+        /**
+         * sessionStorage throws error when cookies are disabled
+         * Chrome content settings when running the site in a Facebook IFrame.
+         * see: https://github.com/devote/HTML5-History-API/issues/34
+         */
+        try {
+            sessionStorage = window['sessionStorage'];
+        } catch(_e_) {}
 
         /**
          * hang up the event handler to listen to the events hashchange
@@ -861,7 +887,7 @@
 
         // If browser does not support object 'state' in interface 'History'
         if (!isSupportStateObjectInHistory && JSON) {
-            storageInitialize(JSON);
+            storageInitialize();
         }
 
         // track clicks on anchors
